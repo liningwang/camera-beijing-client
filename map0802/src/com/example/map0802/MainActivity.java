@@ -30,6 +30,7 @@ import com.baidu.mapapi.map.BitmapDescriptor;
 import com.baidu.mapapi.map.BitmapDescriptorFactory;
 import com.baidu.mapapi.map.BaiduMap;
 import com.baidu.mapapi.map.InfoWindow;
+import com.baidu.mapapi.map.Overlay;
 
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -58,6 +59,8 @@ public class MainActivity extends BaseUi {
   private ImageView image;
   private ImageButton addMark;
   private TextView tv;
+  private Overlay cameraOverlay;
+  private LatLng cameraLocation;
   int tag=0;
     @Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -122,7 +125,7 @@ public class MainActivity extends BaseUi {
 		});
 	}
 
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {  
+/*	protected void onActivityResult(int requestCode, int resultCode, Intent data) {  
         if (resultCode == RESULT_OK) {  
             Uri uri = data.getData();  
             Log.e("wang", uri.toString());  
@@ -130,7 +133,6 @@ public class MainActivity extends BaseUi {
             try {  
                 Bitmap bitmap = BitmapFactory.decodeStream(cr.openInputStream(uri));  
                  
-                /* 灏咮itmap璁惧畾鍒癐mageView */  
                 image.setImageBitmap(bitmap);  
             } catch (FileNotFoundException e) {  
                 Log.e("Exception", e.getMessage(),e);  
@@ -138,7 +140,7 @@ public class MainActivity extends BaseUi {
         }  
         super.onActivityResult(requestCode, resultCode, data);  
     }  
-
+*/
     public void showMark(){
 		OverlayOptions overlayOptions = null;
                 Marker marker = null;
@@ -158,18 +160,7 @@ private void initClickMap(){
 				@Override
 				public void onMapClick(LatLng arg0) {
 					// TODO Auto-generated method stub
-					if(tag == 1) {
-						OverlayOptions overlayOptions = null;
-						 overlayOptions = new MarkerOptions().position(arg0)
-	                             .icon(mIconMaker).zIndex(5);
-						 mBaiduMap.addOverlay(overlayOptions);
-						 HashMap<String, String> locationParams = new HashMap<String, String>();
-						 locationParams.put("longitude", String.valueOf(arg0.longitude));
-						 locationParams.put("latitude", String.valueOf(arg0.latitude));
-						 doTaskAsync(C.task.createCamera, C.api.createCamera, locationParams);
-						
-						 tag = 0;
-					}
+					addCameraOverlay(arg0);
 					 if(flag){
 						 mMarkerInfoLy.setVisibility(View.GONE);
 						 flag = false;
@@ -183,6 +174,25 @@ private void initClickMap(){
 				}
 				
 			});
+}
+private void addCameraOverlay(LatLng arg0) {
+	    if(tag == 1) {
+                        showInfoWindow(arg0);
+                        OverlayOptions overlayOptions = null;
+                         overlayOptions = new MarkerOptions().position(arg0)
+                                    .icon(mIconMaker).zIndex(5);
+                        cameraOverlay = mBaiduMap.addOverlay(overlayOptions);
+			cameraLocation = arg0;
+                        tag = 0;
+                       }
+
+}
+private void uploadCameraOverlay() {
+	HashMap<String, String> locationParams = new HashMap<String, String>();
+        locationParams.put("longitude", String.valueOf(cameraLocation.longitude));
+        locationParams.put("latitude", String.valueOf(cameraLocation.latitude));
+        doTaskAsync(C.task.createCamera, C.api.createCamera, locationParams);
+	Log.d("wang","uploadCamera info successfully!!!");
 }
 public void onTaskComplete(int taskId, BaseMessage message) {
 	super.onTaskComplete(taskId, message);
@@ -218,6 +228,20 @@ public void onTaskComplete(int taskId, BaseMessage message) {
 		break;
 	}
 }
+private void showInfoWindow(LatLng ll) {
+
+             InfoWindow mInfoWindow;
+             View location = getView();
+             //final LatLng ll = marker.getPosition();
+             Point p = mBaiduMap.getProjection().toScreenLocation(ll);
+             Log.d("wang","haha x = " + p.x + "y = " + p.y);
+             LatLng llInfo = mBaiduMap.getProjection().fromScreenLocation(p);
+             //LatLng llInfo = new LatLng(34.242652, 108.971171);
+             Log.d("wang","latitude = " + llInfo.latitude + " longitude" + llInfo.longitude);
+             p.y = -100;
+             mInfoWindow = new InfoWindow(location, llInfo,p.y);
+             mBaiduMap.showInfoWindow(mInfoWindow);
+}
  private void initMarkerClickEvent() {
                
                 mBaiduMap.setOnMarkerClickListener(new OnMarkerClickListener()
@@ -225,91 +249,25 @@ public void onTaskComplete(int taskId, BaseMessage message) {
                         @Override
                         public boolean onMarkerClick(final Marker marker)
                         {
-                                
-
-                                InfoWindow mInfoWindow;
-                               
-                                /*TextView location = new TextView(getApplicationContext());
-                                	location.setClickable(true);
-                                	 location.setOnClickListener(new OnClickListener() {
-
-										@Override
-										public void onClick(View arg0) {
-											// TODO Auto-generated method stub
-											mBaiduMap.hideInfoWindow();
-										}
-                                		 
-                                	 });
-                                location.setBackgroundResource(R.drawable.location_tips);
-                                location.setPadding(30, 20, 30, 50);
-                                location.setText("hello map");*/
-				View location = getView();
-                                final LatLng ll = marker.getPosition();
-                                Point p = mBaiduMap.getProjection().toScreenLocation(ll);
-				Log.d("wang","haha x = " + p.x + "y = " + p.y);
-                                LatLng llInfo = mBaiduMap.getProjection().fromScreenLocation(p);
-		 		//LatLng llInfo = new LatLng(34.242652, 108.971171);
-				Log.d("wang","latitude = " + llInfo.latitude + " longitude" + llInfo.longitude);
-                                
-                                p.y = -100;
-                                mInfoWindow = new InfoWindow(location, llInfo,p.y
-                                               /* new OnInfoWindowClickListener()
-                                                {
-
-                                                        @Override
-                                                        public void onInfoWindowClick()
-                                                        {
-                                                                // 闅愯棌InfoWindow
-                                                                mBaiduMap.hideInfoWindow();
-                                                        }
-                                                }*/);
-                                
-                                mBaiduMap.showInfoWindow(mInfoWindow);
-                                
-                                mMarkerInfoLy.setVisibility(View.VISIBLE);
-                                
-                                	flag = true;
-                                //popupInfo(mMarkerInfoLy);
+             			mMarkerInfoLy.setVisibility(View.VISIBLE);
+             			flag = true;
                                 return true;
                         }
                 });
         }
-  /* protected void popupInfo(RelativeLayout mMarkerLy)
-        {
-                ViewHolder viewHolder = null;
-                if (mMarkerLy.getTag() == null)
-                {
-                        viewHolder = new ViewHolder();
-                        viewHolder.infoImg = (ImageView) mMarkerLy
-                                        .findViewById(R.id.info_img);
-                        viewHolder.infoName = (TextView) mMarkerLy
-                                        .findViewById(R.id.info_name);
-                        viewHolder.infoDistance = (TextView) mMarkerLy
-                                        .findViewById(R.id.info_distance);
-                        viewHolder.infoZan = (TextView) mMarkerLy
-                                        .findViewById(R.id.info_zan);
 
-                        mMarkerLy.setTag(viewHolder);
-                }
-                viewHolder = (ViewHolder) mMarkerLy.getTag();
-                //viewHolder.infoImg.setImageResource(info.getImgId());
-                viewHolder.infoDistance.setText("wang");
-                viewHolder.infoName.setText("map");
-                viewHolder.infoZan.setText("100");
-        }
-
-
-        private class ViewHolder
-        {
-                ImageView infoImg;
-                TextView infoName;
-                TextView infoDistance;
-                TextView infoZan;
-        }
-*/
 public View getView(){
 	View v = View.inflate(getApplicationContext(),R.layout.tpl_list_blogs , null);
 	Button bt = (Button) v.findViewById(R.id.ok);
+        Button cancel = (Button) v.findViewById(R.id.cancel);
+	cancel.setOnClickListener(new OnClickListener() {
+		@Override
+       public void onClick(View arg0) {
+                        // TODO Auto-generated method stub
+			cameraOverlay.remove();
+			mBaiduMap.hideInfoWindow();
+		}
+	});
 	bt.setOnClickListener(new OnClickListener() {
 
 		@Override
@@ -318,12 +276,27 @@ public View getView(){
 			Intent intent = new Intent();
                 	intent.setClass(MainActivity.this, CameraInfo.class);
                 	intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                	startActivity(intent);
-			mBaiduMap.hideInfoWindow();
+                	startActivityForResult(intent,1);
 		}
 		
 	});
 	return v;
+}
+@Override
+protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+	// TODO Auto-generated method stub
+	String result = data.getExtras().getString("result");	
+	if(result.equals("ok")) {
+		String et_desc = data.getExtras().getString("et_desc");	
+		String et_addr = data.getExtras().getString("et_addr");	
+		String camera_typ = data.getExtras().getString("camera_typ");	
+		String direction = data.getExtras().getString("direction");	
+		Log.d("wang","upload camera info:et_desc = " + et_desc + " et_addr = " + et_addr + " camera_typ = " + camera_typ + " direction = " + direction);
+                mBaiduMap.hideInfoWindow();		
+	} else {
+		cameraOverlay.remove();
+                mBaiduMap.hideInfoWindow();		
+	}
 }
    public class Mylistern implements InfoWindow.OnInfoWindowClickListener {
 	   public void onInfoWindowClick()
